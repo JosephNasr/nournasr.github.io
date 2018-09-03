@@ -1,120 +1,129 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <style>
-      body {
-        font-family: sans-serif;
-      }
-      header {
-        text-align: center;
-        background: url('https://img.etsystatic.com/il/f9ee12/1167640602/il_570xN.1167640602_6jdo.jpg?version=1');
-        background-size: cover;
-        color: rgb(219, 194, 61);
-      }
-      a {
-        color: white;
-      }
-      h1 {
-        font-size: 70px;
-      }
-      img {
-        margin: 40px 0px 0px 0px;
-        border: 5px solid white;
-        border-radius: 20px;
-      }
-      ul {
-        padding: 10px;
-        background: rgba(0,0,0,0.5);
-      }
-      li {
-        display: inline;
-        padding: 0px 20px 0px 20px;
-      }
-      article {
-        max-width: 500px;
-        padding: 20px;
-        margin: 0 auto;
-      }
-      @media (max-width: 500px) {
-        h1 {
-          font-size: 36px;
-          padding: 5px;
+<head>
+    <title>Voronoi Diagram with Force Directed Nodes and Delaunay Links</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+    <script src="https://d3js.org/d3.v3.min.js"></script>
+    <style type="text/css">
+        circle {
+            stroke: #EFEDF5;
+            fill: #EFEDF5;
+            pointer-events: none;
         }
-        li {
-          padding: 5px;
-          display: block;
+        line {
+            pointer-events: none;
+            stroke: #EFEDF5;
+            stroke-width: 2px;
+            opacity: .05;
         }
-      }
-      
+        path{
+            stroke: #EFEDF5;
+            stroke-width: 4px;
+        }
     </style>
-  </head>
-  
-  <body>
-    <header>
-      <img src="https://i.imgur.com/NXm23VN.png">
-      <h1>Vincent's Blog</h1>
-      <ul>
-        <li><a href="#">About Me</a></li>
-        <li><a href="#">Best Paintings</a></li>
-        <li><a href="#">Worst Paintings</a></li>
-      </ul>
-    </header>
-    <article id="" >
-      <h2>Starry, starry night</h2>
-      <p>Paint your palette blue and gray<br>
-          Look out on a summer's day <br>
-          With eyes that know the darkness in my soul <br>
-          Shadows on the hills <br>
-          Sketch the trees and the daffodils <br>
-          Catch the breeze and the winter chills <br>
-          In colors on the snowy linen land<br>
-          Now I understand what you tried to say to me <br>
-          And how you suffered for your sanity <br>
-          How you tried to set them free <br>
-          They would not listen, they did not know how<br> 
-          Perhaps they'll listen now</p>
-      <button>Like</button>
-    </article>
-    <article>
-      <h2>Starry, starry night </h2>
-      <p>Flaming flowers that brightly blaze <br>
-          Swirling clouds in violet haze <br>
-          Reflect in Vincent's eyes of china blue<br> 
-          Colors changing hue <br>
-          Morning fields of amber grain<br> 
-          Weathered faces lined in pain <br>
-          Are soothed beneath the artist's loving hand<br>
-          Now I understand what you tried to say to me <br>
-          And how you suffered for your sanity <br>
-          And how you tried to set them free <br>
-          They would not listen, they did not know how<br> 
-          Perhaps they'll listen now</p>
-      <button>Like</button>
-    </article>
-    <article>
-      <h2>Starry, starry night </h2>
-      <p>Portraits hung in empty halls <br>
-          Frameless heads on nameless walls<br> 
-          With eyes that watch the world and can't forget<br> 
-          Like the strangers that you've met <br>
-          The ragged men in ragged clothes <br>
-          A silver thorn, a bloody rose <br>
-          Lie crushed and broken on the virgin snow<br>
-          Now I think I know what you tried to say to me<br> 
-          And how you suffered for your sanity <br>
-          And how you tried to set them free <br>
-          They would not listen, they're not listening still <br>
-          Perhaps they never will</p>
-      <button>Like</button>
-    </article>
-    <script>
-      $("button").on("click", function() {
-        alert("Button clicked!");
-      });
-      $("li").on("click", function() {
-        alert("Li clicked!");
-      });
-    </script>
-  </body>
+</head>
+<body>
+<div id="chart">
+</div>
+<script type="text/javascript">
+    var w = window.innerWidth,
+        h = window.innerHeight,
+        radius = 5.25,
+        links = [],
+        simulate = true,
+        zoomToAdd = true,
+        color = d3.scale.quantize().domain([10000, 7250]).range(["#e4fde1","#8acb88","#648381","#575761","#ffbf46"])
+    var numVertices = (w*h) / 3000;
+    var vertices = d3.range(numVertices).map(function(i) {
+        angle = radius * (i+10);
+        return {x: angle*Math.cos(angle)+(w/2), y: angle*Math.sin(angle)+(h/2)};
+    });
+    var d3_geom_voronoi = d3.geom.voronoi().x(function(d) { return d.x; }).y(function(d) { return d.y; })
+    var prevEventScale = 1;
+    var zoom = d3.behavior.zoom().on("zoom", function(d,i) {
+        if (zoomToAdd){
+          if (d3.event.scale > prevEventScale) {
+              angle = radius * vertices.length;
+              vertices.push({x: angle*Math.cos(angle)+(w/2), y: angle*Math.sin(angle)+(h/2)})
+          } else if (vertices.length > 2 && d3.event.scale != prevEventScale) {
+              vertices.pop();
+          }
+          force.nodes(vertices).start()
+        } else {
+          if (d3.event.scale > prevEventScale) {
+            radius+= .01
+          } else {
+            radius -= .01
+          }
+          vertices.forEach(function(d, i) {
+            angle = radius * (i+10);
+            vertices[i] = {x: angle*Math.cos(angle)+(w/2), y: angle*Math.sin(angle)+(h/2)};
+          });
+          force.nodes(vertices).start()
+        }
+        prevEventScale = d3.event.scale;
+    });
+    d3.select(window)
+      .on("keydown", function() {
+        // shift
+        if(d3.event.keyCode == 16) {
+          zoomToAdd = false
+        }
+        // s
+        if(d3.event.keyCode == 83) {
+          simulate = !simulate
+          if(simulate) {
+            force.start()
+          } else {
+            force.stop()
+          }
+        }
+      })
+      .on("keyup", function() {
+        zoomToAdd = true
+      })
+    var svg = d3.select("#chart")
+            .append("svg")
+            .attr("width", w)
+            .attr("height", h)
+            .call(zoom)
+    var force = d3.layout.force()
+            .charge(-300)
+            .size([w, h])
+            .on("tick", update);
+    force.nodes(vertices).start();
+    var circle = svg.selectAll("circle");
+    var path = svg.selectAll("path");
+    var link = svg.selectAll("line");
+    function update(e) {
+        path = path.data(d3_geom_voronoi(vertices))
+        path.enter().append("path")
+            // drag node by dragging cell
+            .call(d3.behavior.drag()
+              .on("drag", function(d, i) {
+                  vertices[i] = {x: vertices[i].x + d3.event.dx, y: vertices[i].y + d3.event.dy}
+              })
+            )
+            .style("fill", function(d, i) { return color(0) })
+        path.attr("d", function(d) { return "M" + d.join("L") + "Z"; })
+            .transition().duration(150).style("fill", function(d, i) { return color(d3.geom.polygon(d).area()) })
+        path.exit().remove();
+        circle = circle.data(vertices)
+        circle.enter().append("circle")
+              .attr("r", 0)
+              .transition().duration(1000).attr("r", 5);
+        circle.attr("cx", function(d) { return d.x; })
+              .attr("cy", function(d) { return d.y; });
+        circle.exit().transition().attr("r", 0).remove();
+        link = link.data(d3_geom_voronoi.links(vertices))
+        link.enter().append("line")
+        link.attr("x1", function(d) { return d.source.x; })
+            .attr("y1", function(d) { return d.source.y; })
+            .attr("x2", function(d) { return d.target.x; })
+            .attr("y2", function(d) { return d.target.y; })
+        link.exit().remove()
+        if(!simulate) force.stop()
+    }
+</script>
+</body>
 </html>
