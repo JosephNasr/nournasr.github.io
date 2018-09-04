@@ -5,6 +5,9 @@
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
     <script src="https://d3js.org/d3.v3.min.js"></script>
     <style type="text/css">
+        body {
+            margin: 0;
+        }
         circle {
             stroke: #EFEDF5;
             fill: #EFEDF5;
@@ -27,7 +30,7 @@
 </div>
 <script type="text/javascript">
     var w = window.innerWidth,
-        h = window.innerHeight,
+        h = window.innerHeight - 4,
         radius = 5.25,
         links = [],
         simulate = true,
